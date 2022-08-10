@@ -3,68 +3,34 @@ id: microweber
 version: 1.3.0
 name: Microweber
 categories:
-- apps/e-commerce
-- apps/sales-and-marketing
-- apps/cms
-- apps/content-management
+  - apps/e-commerce
+  - apps/sales-and-marketing
+  - apps/cms
+  - apps/content-management
 
 baseUrl: https://raw.githubusercontent.com/microweber-dev/microweber-jelastic-jps/master/
 logo: images/microweber.svg
 homepage: http://www.microweber.com/
 description: Microweber is an open source website builder.
 
-mixins:
-  - configs/vers.yaml
-
-
-
 globals:
-  sqlPass: ${fn.password}
-  application: microweber
-  appTmpPath: /tmp/microweber
-  WEBROOT: /var/www/webroot/ROOT/
+  ADMIN_DB_PASS: ${fn.password}
 
 
 nodes:
-- cloudlets: 1
-  nodeType: apache2
-  engine: php8.1
-- nodeType: mysql5
-  cloudlets: 1
+  - cloudlets: 8
+    nodeType: apache2
+    engine: php8.1
+  - cloudlets: 8
+    nodeType: mysql5
 
 onInstall:
-- downloadArchive
-- deployApp
-- createDb
-- installMicroweber
-
-actions:
-  downloadArchive:
-    cmd [cp]: |-
-      curl -fsSL "http://updater.microweberapi.com/builds/master/microweber.zip" -o ${globals.appTmpPath}.zip
-      unzip -o ${globals.appTmpPath}.zip -d ${globals.WEBROOT}
-      cd ${globals.WEBROOT}
-      rm -rf ${globals.appTmpPath}.zip
-
-  deployApp:
-  - addContext:
-      fileName: Microweber-${globals.version_microweber}.zip
-      name: ROOT
-      type: ARCHIVE
-  - replaceInFile:
-      nodeType: apache2
-      path: "/etc/php.ini"
-      replacements:
-      - pattern: ";extension=gd.so"
-        replacement: extension=gd.so
-      - pattern: ";extension=intl.so"
-        replacement: extension=intl.so
-      - pattern: ";extension=opcache.so"
-        replacement: extension=opcache.so
-      - pattern: ";extension=sodium.so"
-        replacement: extension=sodium.so
-      - pattern: ";extension=mysql.so"
-        replacement: extension=mysql.so
+  - deploy:
+      cmd [cp]: |-
+        curl -fsSL "http://updater.microweberapi.com/builds/master/microweber.zip" -o /tmp/microweber.zip
+        unzip -o /tmp/microweber.zip -d ${globals.WEBROOT}
+        cd ${globals.WEBROOT}
+        rm -rf /tmp/microweber.zip
   - prepareSqlDatabase:
       nodeType: mysql5
       loginCredentials:
@@ -73,21 +39,40 @@ actions:
       newDatabaseName: microweber
       newDatabaseUser:
         name: microweber
-        password: ${globals.sqlPass}
-  - restartNode [cp]
+        password: ${globals.ADMIN_DB_PASS}
+  - replaceInFile:
+      - path: /etc/php.ini
+        nodeType: apache2
+        replacements:
+          - pattern: ";extension=gd.so"
+            replacement: extension=gd.so
+          - pattern: ";extension=intl.so"
+            replacement: extension=intl.so
+          - pattern: ";extension=opcache.so"
+            replacement: extension=opcache.so
+          - pattern: ";extension=sodium.so"
+            replacement: extension=sodium.so
+          - pattern: ";extension=mysql.so"
+            replacement: extension=mysql.so
+          - pattern: ".*extension=curl.so"
+            replacement: extension=curl.so
+      - nodeType: mysql5
+        path: /etc/my.cnf
+        replacements:
+          - replacement: |-
+              user=mysql
+              sql_mode=NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION
+            pattern: user=mysql
 
-  installMicroweber:
-    cmd [cp]:
-    - cd ${SERVER_WEBROOT}/ROOT/; php artisan microweber:install
-      --db-host=${nodes.sqldb.address} --db-name=microweber --db-user=microweber
-      --db-password=${globals.sqlPass} --email=${user.email} --username=admin
-      --password=${user.appPassword} > ${SERVER_WEBROOT}/ROOT/install.log 2>&1
-
-
+  - restartNodes:
+      nodeGroup: cp
+  - cmd [cp]:
+      - "(curl http://${env.domain}/install/?s=1; curl http://${env.domain}/install/?s=2; curl http://${env.domain}/install/?s=3; curl -H 'Content-Type: application/x-www-form-urlencoded' -d 'mysql_version=MySQL5&charset=utf8_general_ci&tables=yes' http://${env.domain}/install/?s=4; curl -H 'Content-Type: application/x-www-form-urlencoded' -d 'website=Jelastic&email=${user.email}&storeInfo=yes' http://${env.domain}/install/?s=5; curl -H 'Content-Type: application/x-www-form-urlencoded' -d 'finish=yes' http://${env.domain}/install/?s=6; curl http://${env.domain}/install/?s=7) > /var/www/webroot/ROOT/install_logs.log"
+      - rm -rf /var/www/webroot/ROOT/install
 success: |
   Below you will find your admin panel link, username and password.  
   
-  Admin panel URL: [${env.protocol}://${env.domain}/${globals.admin_URL}](${env.protocol}://${env.domain}/${globals.admin_URL})  
+  Admin panel URL: [${env.protocol}://${env.domain}/admin](${env.protocol}://${env.domain}/admin)  
   Admin email: ${user.email}  
   Password: ${user.appPassword}  
   
