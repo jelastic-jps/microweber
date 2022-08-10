@@ -15,7 +15,7 @@ description: Microweber is an open source website builder.
 
 globals:
   ADMIN_DB_PASS: ${fn.password}
-
+  WEBROOT: /var/www/webroot/ROOT/
 
 nodes:
   - cloudlets: 8
