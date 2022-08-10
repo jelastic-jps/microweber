@@ -16,21 +16,7 @@ description: Microweber is an open source website builder.
 mixins:
   - configs/vers.yaml
 
-onAfterChangeTopology:
-  - if (${event.response.response.env.sslstate}):
-      setSSL:
-        value: 1
-  - else:
-      setSSL:
-        value: 0
 
-onAfterBindSSL: 
-  setSSL:
-    value: 1
-
-onAfterRemoveSSL:
-  setSSL:
-    value: 0
 
 globals:
   sqlPass: ${fn.password}
@@ -79,13 +65,17 @@ actions:
         replacement: extension=sodium.so
       - pattern: ";extension=mysql.so"
         replacement: extension=mysql.so
+  - prepareSqlDatabase:
+      nodeType: mysql5
+      loginCredentials:
+        user: root
+        password: ${nodes.mysql5.password}
+      newDatabaseName: microweber
+      newDatabaseUser:
+        name: microweber
+        password: ${globals.sqlPass}
   - restartNode [cp]
 
-  createDb:
-    cmd[sqldb]: |-
-      MYSQL_PWD=${nodes.mysql5.password} mysql -uroot -e "CREATE DATABASE microweber;"
-      MYSQL_PWD=${nodes.mysql5.password} mysql -uroot -e "CREATE USER 'microweber'@'%' IDENTIFIED BY '${globals.sqlPass}';"
-      MYSQL_PWD=${nodes.mysql5.password} mysql -uroot -e "GRANT ALL PRIVILEGES ON microweber.* To 'microweber'@'%' IDENTIFIED BY '${globals.sqlPass}';"
   installMicroweber:
     cmd [cp]:
     - cd ${SERVER_WEBROOT}/ROOT/; php artisan microweber:install
@@ -93,8 +83,6 @@ actions:
       --db-password=${globals.sqlPass} --email=${user.email} --username=admin
       --password=${user.appPassword} > ${SERVER_WEBROOT}/ROOT/install.log 2>&1
 
-  setSSL:
-    cmd [sqldb]:  mysql -umicroweber -p${globals.sqlPass} -e "UPDATE microweber.ps_configuration SET value='${this.value}' WHERE name like \"%PS_SSL_ENABLED%\";"
 
 success: |
   Below you will find your admin panel link, username and password.  
