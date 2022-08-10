@@ -67,8 +67,7 @@ onInstall:
   - restartNodes:
       nodeGroup: cp
   - cmd [cp]:
-      - "(curl http://${env.domain}/install/?s=1; curl http://${env.domain}/install/?s=2; curl http://${env.domain}/install/?s=3; curl -H 'Content-Type: application/x-www-form-urlencoded' -d 'mysql_version=MySQL5&charset=utf8_general_ci&tables=yes' http://${env.domain}/install/?s=4; curl -H 'Content-Type: application/x-www-form-urlencoded' -d 'website=Jelastic&email=${user.email}&storeInfo=yes' http://${env.domain}/install/?s=5; curl -H 'Content-Type: application/x-www-form-urlencoded' -d 'finish=yes' http://${env.domain}/install/?s=6; curl http://${env.domain}/install/?s=7) > /var/www/webroot/ROOT/install_logs.log"
-      - rm -rf /var/www/webroot/ROOT/install
+      - cd ${SERVER_WEBROOT}/ROOT/; php artisan microweber:install --db-host=${nodes.sqldb.address} --db-name=microweber --db-user=microweber  --db-password=${globals.sqlPass} --email=${user.email} --username=admin  --password=${user.appPassword} > ${SERVER_WEBROOT}/ROOT/install.log 2>&1
 success: |
   Below you will find your admin panel link, username and password.  
   
