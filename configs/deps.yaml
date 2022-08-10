@@ -1,0 +1,5 @@
+templates:
+  apachephp:
+    - ^apachephp
+  mysql:
+    - ^mysql5$

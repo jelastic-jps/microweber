@@ -1,0 +1,102 @@
+type: install
+id: microweber
+version: 1.3.0
+name: Microweber
+categories:
+- apps/e-commerce
+- apps/sales-and-marketing
+
+baseUrl: https://raw.githubusercontent.com/microweber-dev/microweber-jelastic-jps/master/
+logo: images/microweber.svg
+homepage: http://www.microweber.com/
+description: Microweber is an open source website builder.
+
+mixins:
+  - configs/vers.yaml
+
+onAfterChangeTopology:
+  - if (${event.response.response.env.sslstate}):
+      setSSL:
+        value: 1
+  - else:
+      setSSL:
+        value: 0
+
+onAfterBindSSL: 
+  setSSL:
+    value: 1
+
+onAfterRemoveSSL:
+  setSSL:
+    value: 0
+
+globals:
+  sqlPass: ${fn.password}
+  application: microweber
+  appTmpPath: /tmp/microweber
+  WEBROOT: /var/www/webroot/ROOT/
+
+
+nodes:
+- cloudlets: 1
+  nodeType: apache2
+  engine: php8.1
+- nodeType: mysql5
+  cloudlets: 1
+
+onInstall:
+- downloadArchive
+- deployApp
+- createDb
+- installMicroweber
+
+actions:
+  downloadArchive:
+    cmd [cp]: |-
+      curl -fsSL "http://updater.microweberapi.com/builds/master/microweber.zip" -o ${globals.appTmpPath}.zip
+      unzip -o ${globals.appTmpPath}.zip -d ${globals.WEBROOT}
+      cd ${globals.WEBROOT}
+      rm -rf ${globals.appTmpPath}.zip
+
+  deployApp:
+  - addContext:
+      fileName: Microweber-${globals.version_microweber}.zip
+      name: ROOT
+      type: ARCHIVE
+  - replaceInFile:
+      nodeType: apache2
+      path: "/etc/php.ini"
+      replacements:
+      - pattern: ";extension=gd.so"
+        replacement: extension=gd.so
+      - pattern: ";extension=intl.so"
+        replacement: extension=intl.so
+      - pattern: ";extension=opcache.so"
+        replacement: extension=opcache.so
+      - pattern: ";extension=sodium.so"
+        replacement: extension=sodium.so
+  - restartNode [cp]
+
+  createDb:
+    cmd[sqldb]: |-
+      MYSQL_PWD=${nodes.mysql5.password} mysql -uroot -e "CREATE DATABASE microweber;"
+      MYSQL_PWD=${nodes.mysql5.password} mysql -uroot -e "CREATE USER 'microweber'@'%' IDENTIFIED BY '${globals.sqlPass}';"
+      MYSQL_PWD=${nodes.mysql5.password} mysql -uroot -e "GRANT ALL PRIVILEGES ON microweber.* To 'microweber'@'%' IDENTIFIED BY '${globals.sqlPass}';"
+  installMicroweber:
+    cmd [cp]:
+    - cd ${SERVER_WEBROOT}/ROOT/; php artisan microweber:install
+      --db-host=${nodes.sqldb.address} --db-name=microweber --db-user=microweber
+      --db-password=${globals.sqlPass} --email=${user.email} --username=admin
+      --password=${user.appPassword} > ${SERVER_WEBROOT}/ROOT/install.log 2>&1
+
+  setSSL:
+    cmd [sqldb]:  mysql -umicroweber -p${globals.sqlPass} -e "UPDATE microweber.ps_configuration SET value='${this.value}' WHERE name like \"%PS_SSL_ENABLED%\";"
+
+success: |
+  Below you will find your admin panel link, username and password.  
+  
+  Admin panel URL: [${env.protocol}://${env.domain}/${globals.admin_URL}](${env.protocol}://${env.domain}/${globals.admin_URL})  
+  Admin email: ${user.email}  
+  Password: ${user.appPassword}  
+  
+  To add custom domain name for your installation follow the steps described in our [documentation](http://docs.jelastic.com/custom-domains)
