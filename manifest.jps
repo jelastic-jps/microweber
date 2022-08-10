@@ -5,6 +5,8 @@ name: Microweber
 categories:
 - apps/e-commerce
 - apps/sales-and-marketing
+- apps/cms
+- apps/content-management
 
 baseUrl: https://raw.githubusercontent.com/microweber-dev/microweber-jelastic-jps/master/
 logo: images/microweber.svg
@@ -75,6 +77,8 @@ actions:
         replacement: extension=opcache.so
       - pattern: ";extension=sodium.so"
         replacement: extension=sodium.so
+      - pattern: ";extension=mysql.so"
+        replacement: extension=mysql.so
   - restartNode [cp]
 
   createDb:
