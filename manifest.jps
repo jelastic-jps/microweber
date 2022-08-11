@@ -26,7 +26,7 @@ nodes:
 
 onInstall:
   - deploy:
-      archive: http://updater.microweberapi.com/builds/master/microweber.zip
+      archive: http://updater.microweberapi.com/builds/dev/microweber.zip
       name: microweber.zip
       context: ROOT
   - prepareSqlDatabase:
@@ -64,7 +64,7 @@ onInstall:
   - restartNodes:
       nodeGroup: cp
   - cmd [cp]:
-      - cd ${SERVER_WEBROOT}/ROOT/; php artisan microweber:install --db-host=${nodes.sqldb.address} --db-name=microweber --db-user=microweber  --db-password=${globals.ADMIN_DB_PASS} --email=${user.email} --username=admin  --password=${globals.ADMIN_DB_PASS} > ${SERVER_WEBROOT}/ROOT/install.log 2>&1
+      - cd ${SERVER_WEBROOT}/ROOT/; php artisan microweber:install --db-host=${nodes.sqldb.address} --db-driver=mysql --db-name=microweber --db-username=microweber  --db-password=${globals.ADMIN_DB_PASS} --email=${user.email} --username=admin  --password=${globals.ADMIN_DB_PASS} --config-only=1 --default-content=1 > ${SERVER_WEBROOT}/ROOT/install.log 2>&1
 success: |
   Below you will find your admin panel link, username and password.  
   
