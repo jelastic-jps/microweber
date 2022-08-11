@@ -26,11 +26,9 @@ nodes:
 
 onInstall:
   - deploy:
-      cmd [cp]: |-
-        curl -fsSL "http://updater.microweberapi.com/builds/master/microweber.zip" -o /tmp/microweber.zip
-        unzip -o /tmp/microweber.zip -d ${SERVER_WEBROOT}/ROOT/
-        cd ${SERVER_WEBROOT}/ROOT/
-        rm -rf /tmp/microweber.zip
+      archive: http://updater.microweberapi.com/builds/master/microweber.zip
+      name: microweber.zip
+      context: ROOT
   - prepareSqlDatabase:
       nodeType: mysql5
       loginCredentials:
