@@ -1,6 +1,6 @@
 type: install
 id: microweber
-version: 1.3.0
+version: 1.3.1
 name: Microweber
 categories:
   - apps/e-commerce
@@ -26,7 +26,7 @@ nodes:
 
 onInstall:
   - deploy:
-      archive: http://updater.microweberapi.com/builds/dev/microweber.zip
+      archive: http://updater.microweberapi.com/builds/master/microweber.zip
       name: microweber.zip
       context: ROOT
   - prepareSqlDatabase:
