@@ -10,12 +10,13 @@ categories:
 
 baseUrl: https://raw.githubusercontent.com/microweber-dev/microweber-jelastic-jps/master/
 logo: images/microweber.svg
-homepage: http://www.microweber.com/
+homepage: https://www.microweber.com/
 description: Microweber is an open source website builder.
 
 globals:
   ADMIN_DB_PASS: ${fn.password}
 
+ssl: true
 
 nodes:
   - cloudlets: 8
@@ -23,6 +24,15 @@ nodes:
     engine: php8.1
   - cloudlets: 8
     nodeType: mysql5
+
+settings:
+  fields:
+
+    - caption: Install Let's Encrypt SSL with Auto-Renewal
+      type: checkbox
+      name: le-addon
+      value: false
+      tooltip: "Advanced integration with Let's Encrypt certificate authority that simplifies and automates the process of issuing, configuring and updating trusted custom SSL certificates"
 
 onInstall:
   - deploy:
@@ -65,6 +75,20 @@ onInstall:
       nodeGroup: cp
   - cmd [cp]:
       - cd ${SERVER_WEBROOT}/ROOT/; php artisan microweber:install --db-host=${nodes.sqldb.address} --db-driver=mysql --db-name=microweber --db-username=microweber  --db-password=${globals.ADMIN_DB_PASS} --email=${user.email} --username=admin  --password=${globals.ADMIN_DB_PASS} --config-only=1 --default-content=1 > ${SERVER_WEBROOT}/ROOT/install.log 2>&1
+
+  - if ('${settings.le-addon}' == 'true'):
+      setupLE
+
+actions:
+
+  setupLE:
+    - install: https://github.com/jelastic-jps/lets-encrypt/blob/master/manifest.jps?_r=${fn.random}
+      nodeGroup: cp
+      skipEmail: true
+      settings:
+        fallbackToX1: true      
+        customDomains: ${env.domain}
+
 success: |
   Below you will find your admin panel link, username and password.  
   
@@ -72,4 +96,4 @@ success: |
   Admin email: ${user.email}  
   Password: ${user.appPassword}  
   
-  To add custom domain name for your installation follow the steps described in our [documentation](http://docs.jelastic.com/custom-domains)
+  To add custom domain name for your installation follow the steps described in our [documentation](http://docs.jelastic.com/custom-domains) or just configure Let's Encrypt addon in addons menu
